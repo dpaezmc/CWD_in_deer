@@ -9,6 +9,17 @@ if(!require(tidyverse)) install.packages(tidyverse)
 if(!require(deSolve)) install.packages(deSolve)
 
 
+# Imporvements to do:
+# - be able to compare models with diferent parametes
+# - explain what each parameter does
+# - make an reacive value function so plot render is not bulky
+# - make the other parameters vary, and set proper ranges
+# - make better plot
+
+
+
+
+
 # Model Specification (user defined function) ------------------------------
 
 SIEmod <- function(times, State, Pars) {
