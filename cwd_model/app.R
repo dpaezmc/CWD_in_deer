@@ -9,14 +9,13 @@ if(!require(tidyverse)) install.packages(tidyverse)
 if(!require(deSolve)) install.packages(deSolve)
 
 
-# Imporvements to do:
-# - be able to compare models with diferent parametes
+# Improvements to do:
+# - be able to compare models with different parameters
 # - explain what each parameter does
-# - make an reacive value function so plot render is not bulky
+# - show what parameters are being used
+# - make an reactive value function so plot render is not bulky
 # - make the other parameters vary, and set proper ranges
 # - make better plot
-
-
 
 
 
@@ -41,7 +40,7 @@ SIEmod <- function(times, State, Pars) {
 # Define UI for application that draws a histogram
 ui <- fluidPage(
     
-    titlePanel("CWD Model"), 
+    titlePanel("CWD SEI Model"), 
     
     sidebarLayout(
         sidebarPanel(
@@ -64,7 +63,7 @@ ui <- fluidPage(
             sliderInput(inputId = "time", 
                         label = "time", 
                         min = 0, 
-                        value = 10, 
+                        value = 20, 
                         max = 50,
                         step = 5)
         ),
@@ -83,7 +82,9 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    # rv <- reactiveValues()
+    rv <- reactiveValues()
+    rv$pre_out <- NULL
+    rv$cur_out <- NULL
     
     alpha <- 4.48307
     m <- 0.103202
@@ -92,11 +93,10 @@ server <- function(input, output) {
     tau <- 0.135785
     S0 <- 180
     
-    # rv$beta <- 0.002446
+    beta <- 0.002446
     
     # rv$mu <- 2.617254 
 
-    
     
     output$plot1 <- renderPlot({
         parsSIE <- c(alpha = alpha,
@@ -129,17 +129,35 @@ server <- function(input, output) {
                                        "tau", "S0", "beta", "mu")
         
         # Output <- rbind(Output, outL)
-        Output <- outL
         
-        SIE_plot <- Output  %>%  filter(Compartment== "Infectious") %>%
+        if(is.null(rv$pre_out)){
+            print("here")
+            rv$pre_out <- outL
+            rv$cur_out <- outL
+        }else{
+            rv$pre_out <- isolate(rv$cur_out)
+            rv$cur_out <- outL
+        }
+        
+        previous <- rv$pre_out  %>%  filter(Compartment== "Infectious") %>%
             mutate(beta = as.character(round(beta, 6)),
-                   mu = as.character(round(mu, 3))) %>%
-            ggplot(aes(x = time, y = Number, group = mu, color = mu)) +
+                   mu = as.character(round(mu, 3))) 
+        
+        current <- rv$cur_out  %>%  filter(Compartment== "Infectious") %>%
+            mutate(beta = as.character(round(beta, 6)),
+                   mu = as.character(round(mu, 3))) 
+      
+        SIE_plot <-  ggplot(data = current, aes(x = time, y = Number, group = mu, color = mu)) +
             ylab("Number of infectious hosts") + 
-            xlab("Time") + geom_line(size = 1) + facet_wrap(~ beta) +
-            theme_bw() + theme(text = element_text(size = 20), 
+            xlab("Time") + geom_line(size = 1, color = "red") +
+            geom_line(data = previous, aes(x = time, y = Number, group = mu, color = mu), size = 1, color = "blue") +
+            xlim(min(previous$time, current$time), max(previous$time, current$time)) +
+            ylim(min(previous$Number, current$Number), max(previous$Number, current$Number)) +
+            theme_bw() +
+            theme(text = element_text(size = 20), 
                                strip.background = element_blank())
         SIE_plot
+        
     })
 }
 
